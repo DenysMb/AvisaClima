@@ -169,7 +169,8 @@ export default function Home() {
         RegisterLocationOnAPI(currentPlace?.id);
       })
       .catch((error) => {
-        Alert.alert('GetWeatherInformationFromLatAndLong', error?.response?.data);
+        Alert.alert('Sem conexão com a internet');
+        getWeatherData();
       });
   };
 
