@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Linking, Text} from 'react-native';
+import {Linking, Alert, Text} from 'react-native';
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome';
 import {
   faCloudSunRain,
@@ -32,11 +32,11 @@ import {colors} from '../../Utils/theme';
 import Geolocation from 'react-native-geolocation-service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {IconProp} from '@fortawesome/fontawesome-svg-core';
-import {requestLocationPermission} from '../../Utils/permissions'
+import {requestLocationPermission} from '../../Utils/permissions';
 // @ts-ignore
 import {API_KEY} from '@env';
 
-const API_PATH = `http://apiadvisor.climatempo.com.br/api/v1`;
+const API_PATH = `https://apiadvisor.climatempo.com.br/api/v1`;
 
 interface ICoord {
   lat: number | string;
@@ -53,7 +53,9 @@ interface IPlace {
 export default function Home() {
   const [weather, setWeather] = useState<Weather | undefined>(undefined);
   const [oldLocaleId, setOldLocaleId] = useState<number | string>('');
-  const [registeredLocaleId, setRegisteredLocaleId] = useState<number | string>('');
+  const [registeredLocaleId, setRegisteredLocaleId] = useState<number | string>(
+    '',
+  );
   const [data, setData] = useState<DataEntity[]>([]);
   const [coord, setCoord] = useState<ICoord>({lat: 0, long: 0});
   const [place, setPlace] = useState<IPlace>({
@@ -66,7 +68,7 @@ export default function Home() {
     try {
       await AsyncStorage.setItem('@locale_id', value);
     } catch (e) {
-        console.log(e);
+      Alert.alert('storeLocaleId', e);
     }
   };
 
@@ -75,7 +77,7 @@ export default function Home() {
       const jsonValue = JSON.stringify(value);
       await AsyncStorage.setItem('@weather_data', jsonValue);
     } catch (e) {
-        console.log(e);
+      Alert.alert('storeWeatherData', e);
     }
   };
 
@@ -87,10 +89,10 @@ export default function Home() {
         setWeather(parsedJson);
         setData(parsedJson?.data);
       } else {
-        GetRegisteredLocale()
+        GetRegisteredLocale();
       }
     } catch (e) {
-      console.log(e)
+      Alert.alert('getWeatherData', e);
     }
   };
 
@@ -98,28 +100,27 @@ export default function Home() {
     try {
       const value = await AsyncStorage.getItem('@locale_id');
       if (value !== null) {
-        //   console.log(value)
         setOldLocaleId(value);
       }
     } catch (e) {
-        console.log(e);
+      Alert.alert('getLocaleId', e);
     }
   };
 
   const GetRegisteredLocale = () => {
-    const url = `http://apiadvisor.climatempo.com.br/api-manager/user-token/${API_KEY}/locales`
+    const url = `https://apiadvisor.climatempo.com.br/api-manager/user-token/${API_KEY}/locales`;
 
     axios
       .get(url)
       .then((response: any) => {
         const currentRegisteredLocales = response?.data?.locales;
 
-        GetWeatherData(currentRegisteredLocales[0])
+        GetWeatherData(currentRegisteredLocales[0]);
       })
       .catch(function (error) {
-        console.log(error?.response?.data);
+        Alert.alert('GetRegisteredLocale', error?.response?.data);
       });
-  }
+  };
 
   const GetWeatherData = (localeId: any) => {
     const url = `${API_PATH}/forecast/locale/${localeId}/days/15?token=${API_KEY}`;
@@ -134,12 +135,12 @@ export default function Home() {
         setData(currentWeather?.data);
       })
       .catch(function (error) {
-        console.log(error?.response?.data);
+        Alert.alert('GetWeatherData', error?.response?.data);
       });
   };
 
   const RegisterLocationOnAPI = (localeId: any) => {
-    const url = `http://apiadvisor.climatempo.com.br/api-manager/user-token/${API_KEY}/locales`;
+    const url = `https://apiadvisor.climatempo.com.br/api-manager/user-token/${API_KEY}/locales`;
 
     axios
       .put(url, {'localeId[]': localeId})
@@ -168,7 +169,7 @@ export default function Home() {
         RegisterLocationOnAPI(currentPlace?.id);
       })
       .catch((error) => {
-        console.log(error?.response?.data);
+        Alert.alert('GetWeatherInformationFromLatAndLong', error?.response?.data);
       });
   };
 
@@ -239,20 +240,20 @@ export default function Home() {
             lat: position?.coords?.latitude,
             long: position?.coords?.longitude,
           };
-  
+
           setCoord(currentCoord);
-  
+
           GetWeatherInformationFromLatAndLong(
             currentCoord?.lat,
             currentCoord?.long,
           );
         },
         (error) => {
-          console.log(error.code, error.message);
+          Alert.alert('requestLocationPermission', error?.code, error?.message);
         },
         {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
       );
-    })
+    });
   }, [oldLocaleId]);
 
   return (
@@ -260,7 +261,10 @@ export default function Home() {
       <AppInfoView>
         <FontAwesomeIcon icon={faCloudSunRain} size={64} />
         <AppTitleText>Avisa Clima</AppTitleText>
-        <AuthorNameText onPress={() => Linking.openURL('https://github.com/DenysMb')}>por Denys Madureira</AuthorNameText>
+        <AuthorNameText
+          onPress={() => Linking.openURL('https://github.com/DenysMb')}>
+          por Denys Madureira
+        </AuthorNameText>
       </AppInfoView>
       <WeatherView>
         {data?.map((row: DataEntity, index: number) => (
